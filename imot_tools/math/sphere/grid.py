@@ -10,6 +10,7 @@ Tesselation schemes.
 
 import astropy.coordinates as coord
 import astropy.units as u
+import healpy
 import numpy as np
 import scipy.linalg as linalg
 
@@ -297,7 +298,13 @@ def equal_angle(N, direction=None, FoV=None):
         return q, l, colat, lon
 
 
-@chk.check("N", chk.is_integer)
+@chk.check(
+    dict(
+        N=chk.is_integer,
+        direction=chk.allow_None(chk.require_all(chk.has_reals, chk.has_shape([3]))),
+        FoV=chk.allow_None(chk.is_real),
+    )
+)
 def fibonacci(N, direction=None, FoV=None):
     r"""
     (Region-limited) near-uniform sampling on the sphere.
@@ -396,6 +403,103 @@ def fibonacci(N, direction=None, FoV=None):
     colat = np.arccos(1 - (2 * n + 1) / N_px)
     lon = (4 * np.pi * n) / (1 + np.sqrt(5))
     XYZ = np.stack(transform.pol2cart(1, colat, lon), axis=0)
+
+    if direction is not None:  # region-limited case.
+        # TODO: highly inefficient to generate the grid this way!
+        min_similarity = np.cos(FoV / 2)
+        mask = (direction @ XYZ) >= min_similarity
+        XYZ = XYZ[:, mask]
+
+    return XYZ
+
+
+@chk.check(
+    dict(
+        N=chk.is_integer,
+        direction=chk.allow_None(chk.require_all(chk.has_reals, chk.has_shape([3]))),
+        FoV=chk.allow_None(chk.is_real),
+    )
+)
+def healpix(N, direction=None, FoV=None):
+    r"""
+    (Region-limited) HEALPix sampling on the sphere.
+
+    Parameters
+    ----------
+    N : int
+        Order of the grid, i.e. there will be :math:`3 (N + 1)^{2}` points on the sphere.
+    direction : :py:class:`~numpy.ndarray`
+        (3,) vector around which the grid is centered.
+        If :py:obj:`None`, then the grid covers the entire sphere.
+    FoV : float
+        Span of the grid [rad] centered at `direction`.
+        This parameter is ignored if `direction` left unspecified.
+
+    Returns
+    -------
+    XYZ : :py:class:`~numpy.ndarray`
+        (3, N_px) sample points.
+        `N_px == 3*(N+1)**2` if `direction` left unspecified. In this case pixels are RING-ordered.
+
+    Examples
+    --------
+    Sampling a zonal function :math:`f(r): \mathbb{S}^{2} \to \mathbb{C}` of order :math:`N` on
+    *part* of the sphere:
+
+    .. testsetup::
+
+       import numpy as np
+
+       from imot_tools.math.sphere.grid import healpix
+
+    .. doctest::
+
+       >>> N = 10
+       >>> direction = np.r_[1, 0, 0]
+       >>> FoV = np.deg2rad(90)
+       >>> XYZ = healpix(N, direction, FoV)
+
+       >>> np.around(XYZ, 2)
+       array([[ 0.74,  0.74,  0.85,  0.8 ,  0.8 ,  0.91,  0.82,  0.82,  0.91,
+                0.96,  0.92,  0.78,  0.78,  0.92,  0.98,  0.88,  0.88,  0.98,
+                1.  ,  0.95,  0.81,  0.81,  0.95,  0.98,  0.88,  0.88,  0.98,
+                0.96,  0.92,  0.78,  0.78,  0.92,  0.91,  0.82,  0.82,  0.91,
+                0.85,  0.8 ,  0.8 ,  0.74,  0.74],
+              [ 0.12, -0.12,  0.  ,  0.26, -0.26,  0.14,  0.42, -0.42, -0.14,
+                0.  ,  0.3 ,  0.57, -0.57, -0.3 ,  0.16,  0.45, -0.45, -0.16,
+                0.  ,  0.31,  0.59, -0.59, -0.31,  0.16,  0.45, -0.45, -0.16,
+                0.  ,  0.3 ,  0.57, -0.57, -0.3 ,  0.14,  0.42, -0.42, -0.14,
+                0.  ,  0.26, -0.26,  0.12, -0.12],
+              [ 0.67,  0.67,  0.53,  0.53,  0.53,  0.4 ,  0.4 ,  0.4 ,  0.4 ,
+                0.27,  0.27,  0.27,  0.27,  0.27,  0.13,  0.13,  0.13,  0.13,
+                0.  ,  0.  ,  0.  ,  0.  ,  0.  , -0.13, -0.13, -0.13, -0.13,
+               -0.27, -0.27, -0.27, -0.27, -0.27, -0.4 , -0.4 , -0.4 , -0.4 ,
+               -0.53, -0.53, -0.53, -0.67, -0.67]])
+
+    Notes
+    -----
+    The `HEALPix <https://healpix.jpl.nasa.gov/>`_ scheme is defined in [3]_.
+
+    .. [3] Gorski, "HEALPix - A Framework for High-Resolution Discretization and Fast Analysis of Data Distributed on the Sphere"
+    """
+    if direction is not None:
+        direction = np.array(direction, dtype=float)
+        direction /= linalg.norm(direction)
+
+        if FoV is not None:
+            if not (0 < np.rad2deg(FoV) < 360):
+                raise ValueError("Parameter[FoV] must be in (0, 360) degrees.")
+        else:
+            raise ValueError("Parameter[FoV] must be specified if Parameter[direction] provided.")
+
+    if N < 0:
+        raise ValueError("Parameter[N] must be non-negative.")
+
+    N_side = (N + 1) // 2
+    N_px = 12 * (N_side ** 2)
+    n = np.arange(N_px)
+
+    XYZ = np.stack(healpy.pix2vec(N_side, n), axis=0)
 
     if direction is not None:  # region-limited case.
         # TODO: highly inefficient to generate the grid this way!
