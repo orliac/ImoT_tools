@@ -383,18 +383,18 @@ class Image:
 
             Accepted keys are:
 
-            * N_parallel :: int
+            * N_parallel : int
                 Number declination lines to show in viewable region. (Default: 3)
-            * N_meridian :: int
+            * N_meridian : int
                 Number of right-ascension lines to show in viewable region. (Default: 3)
-            * polar_plot :: bool
+            * polar_plot : bool
                 Correct RA/DEC gridlines when mapping polar regions. (Default: False)
 
                 When mapping polar regions, meridian lines may be doubled at 180W/E, making it seem like a meridian line is missing.
                 Setting `polar_plot` to :py:obj:`True` redistributes the meridians differently to correct the issue.
 
                 This option only makes sense when mapping polar regions, and will produce incorrect gridlines otherwise.
-            * ticks :: bool
+            * ticks : bool
                 Add RA/DEC labels next to gridlines. (Default: False)
                 TODO: change to True once implemented
         catalog_kwargs : dict
