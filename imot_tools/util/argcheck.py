@@ -577,6 +577,53 @@ def has_shape(shape):
     return _has_shape
 
 
+def has_ndim(ndim):
+    """
+    Validate array dimensions.
+
+    Parameters
+    ----------
+    ndim : int
+        Desired number of dimensions.
+
+    Returns
+    -------
+    :py:obj:`~typing.Callable`
+        Boolean function.
+
+    Examples
+    --------
+    .. testsetup::
+
+       from imot_tools.util.argcheck import has_ndim, check
+
+    .. doctest::
+
+       >>> has_ndim(1)([5,])
+       True
+
+       >>> has_ndim(2)((1,))
+       False
+    """
+    if not ((is_integer(ndim)) and (ndim > 0)):
+        raise ValueError("Parameter[ndim] must be positive.")
+
+    def _has_ndim(x):
+        if is_array_like(x):
+            x = np.array(x, copy=False)
+        else:
+            return False
+
+        if x.ndim == ndim:
+            return True
+
+        return False
+
+    _has_ndim.__name__ = f"has_ndim({ndim})"
+
+    return _has_ndim
+
+
 def is_integer(x):
     """
     Return :py:obj:`True` if `x` is an integer.

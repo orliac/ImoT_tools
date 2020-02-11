@@ -3,12 +3,12 @@ imot\_tools.util.argcheck
 
 .. automodule:: imot_tools.util.argcheck
 
-   
-   
+
+
    .. rubric:: Functions
 
    .. autosummary::
-   
+
       accept_any
       allow_None
       check
@@ -16,6 +16,7 @@ imot\_tools.util.argcheck
       has_complex
       has_evens
       has_integers
+      has_ndim
       has_odds
       has_pow2s
       has_reals
@@ -32,13 +33,12 @@ imot\_tools.util.argcheck
       is_real
       is_scalar
       require_all
-   
-   
 
-   
-   
-   
 
-   
-   
-   
+
+
+
+
+
+
+
