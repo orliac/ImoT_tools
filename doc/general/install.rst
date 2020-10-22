@@ -11,7 +11,7 @@ Installation
 ::
 
     $ cd <ImoT_tools_dir>/
-    $ python3 setup.py develop
+    $ pip install .
 
 
 Documentation / Tests
